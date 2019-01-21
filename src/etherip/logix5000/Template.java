@@ -23,6 +23,7 @@ public class Template implements Type {
 	private int structureSize;
 	private short numberOfMembers;
 	private short crcValue;
+	private boolean isString = false;
 	private Member[] members;
 
 	private String name;
@@ -38,6 +39,14 @@ public class Template implements Type {
 		this.crcValue = crcValue;	
 	}
 	
+	public boolean isString() {
+		return isString;
+	}
+
+	public short stringLength() {
+		return members[1].arraySize;
+	}
+
 	public short code() {
 		return instanceId;
 	}
@@ -88,11 +97,18 @@ public class Template implements Type {
 	@Override
 	public String toString() {
 		StringBuilder description = new StringBuilder();
-		description.append("<Template ").append(instanceId);
-		description.append(" ").append(objectSize).append(" words");
-		description.append(" ").append(structureSize).append(" bytes");
-		description.append(" ").append(" members ").append(Arrays.asList(members));
-		description.append(">");
+		if (isString) {
+			description.append("String[");
+			description.append(stringLength());
+			description.append("]");
+		}
+		else {
+			description.append("<Template ").append(instanceId);
+			description.append(" ").append(objectSize).append(" words");
+			description.append(" ").append(structureSize).append(" bytes");
+			description.append(" ").append(" members ").append(Arrays.asList(members));
+			description.append(">");
+		}
 		return description.toString();
 	}
 
@@ -117,7 +133,7 @@ public class Template implements Type {
 		
 		short index = 0;
 		for (Member member : new ArrayList<>(memberArray)) {
-			name = readName(buffer);
+			name = readName(buffer); // Seems always "DATA"
 			member.setName(name);
 			if (name.startsWith("ZZZZZZZZZZ")) {
 				memberArray.remove(member);
@@ -127,6 +143,13 @@ public class Template implements Type {
 			}
 		}
 		members = memberArray.toArray(new Member[memberArray.size()]);
+		if (numberOfMembers == 2) {
+			if (members[0].name.equals("LEN") 
+					&& members[0].type == BasicType.DINT
+					&& members[1].type == BasicType.SINT) {
+				isString = true;
+			}
+		}
 	}
 
 	private String readName(ByteBuffer buffer) {
@@ -157,6 +180,39 @@ public class Template implements Type {
 
 	@Override
 	public void encode(Object value, List<byte[]> dataParts) {
+		if (isString()) {
+			encodeString(value, dataParts);
+		}
+		else {
+			encodeStructure(value, dataParts);
+		}
+	}
+
+	private void encodeString(Object value, List<byte[]> dataParts) {
+		ByteBuffer buffer = ByteBuffer.allocate(encodedDataSize());
+		buffer.order(Connection.BYTE_ORDER);
+		String stringValue = (String)value;
+		int dataLen = stringValue.length();
+		if (dataLen > stringLength()) {
+			throw new RuntimeException("Trying to encode "+dataLen+" chars in a STRING["+stringLength()+"] : "+stringValue);
+		}
+		buffer.putInt(dataLen);
+		buffer.put(stringValue.getBytes(StandardCharsets.US_ASCII));
+		int paddingLength = stringLength() - dataLen + members[1].padding;
+		buffer.put(new byte[paddingLength]);
+		dataParts.add(buffer.array());
+	}
+	
+	public void decodeInTag(ByteBuffer buffer, TagStructure tag) {
+		ByteBuffer localBuffer = buffer.slice();
+		localBuffer.order(Connection.BYTE_ORDER);
+		for (int i = 0; i < members.length; i++) {
+			members[i].decodeInTag(localBuffer, tag);
+		}
+		buffer.position(buffer.position()+structureSize);
+	}
+	
+	private void encodeStructure(Object value, List<byte[]> dataParts) {
 		TagStructure tag = (TagStructure) value;	
 		int lastOffset = -1;
 		for (int i = 0; i < members.length; i++) {
@@ -182,21 +238,27 @@ public class Template implements Type {
 			dataParts.add(new byte[structurePadding]);
 		}
 	}
-	
-	public void decodeInTag(ByteBuffer buffer, TagStructure tag) {
-		ByteBuffer localBuffer = buffer.slice();
-		localBuffer.order(Connection.BYTE_ORDER);
-		for (int i = 0; i < members.length; i++) {
-			members[i].decodeInTag(localBuffer, tag);
-		}
-		buffer.position(buffer.position()+structureSize);
-	}
-	
+
 	@Override
 	public Object decode(ByteBuffer buffer) {
+		if (isString()) {
+			return decodeString(buffer);
+		}
 		throw new RuntimeException("Not supposed to reach this method.");
 	}
-	
+
+	public String decodeString(ByteBuffer buffer) {
+		int dataLen = buffer.getInt();
+		if (dataLen > stringLength()) {
+			dataLen = stringLength(); // Possible corruption due to a size change in the controller.
+		}
+		byte[] stringBytes = new byte[dataLen];
+		buffer.get(stringBytes);
+		int paddingLength = structureSize - 4 - dataLen;
+		buffer.get(new byte[paddingLength]);
+		return new String(stringBytes, StandardCharsets.US_ASCII);
+	}
+
 	public class Member {
 		private final short elementIndex;
 		private short index;
@@ -244,8 +306,15 @@ public class Template implements Type {
 				value.decode(buffer);
 			}
 			else if (type instanceof Template) {
-				TagStructure value = tag.getTag(this);
-				value.decode(buffer);
+				Template template = (Template) type;
+				if (template.isString()) {
+					Object value = type.decode(buffer);
+					tag.set(index, value);
+				}
+				else {
+					TagStructure value = tag.getTag(this);
+					value.decode(buffer);
+				}
 			}
 			else {
 				Object value = type.decode(buffer);

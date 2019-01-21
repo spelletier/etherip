@@ -66,15 +66,6 @@ public class TagStructure extends Tag<Template> {
 		set(index, value);
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder description = new StringBuilder();
-		description.append("<Tag ").append(path);
-		appendValuesToDescription(description);
-		description.append(">");
-		return description.toString();
-	}
-
 	public void appendValuesToDescription(StringBuilder description) {
 		description.append("{");
 		for (int i = 0; i < values.length; i++) {

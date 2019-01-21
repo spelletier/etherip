@@ -68,4 +68,13 @@ public abstract class Tag<T extends Type> {
 	abstract public void encode(List<byte[]> dataParts);
 	abstract public void decode(ByteBuffer buffer);
 	abstract public void appendValuesToDescription(StringBuilder description);
+
+	@Override
+	public String toString() {
+		StringBuilder description = new StringBuilder();
+		description.append("<Tag ").append(path).append(": ");
+		appendValuesToDescription(description);
+		description.append(">");
+		return description.toString();
+	}
 }

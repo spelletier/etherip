@@ -36,17 +36,8 @@ public class TagArray<T extends Type> extends Tag<T> {
 		return list;
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder description = new StringBuilder();
-		description.append("<Tag ").append(path);
-		description.append(" type: ").append(type).append("[").append(values.length).append("] ");
-		appendValuesToDescription(description);
-		description.append(">");
-		return description.toString();
-	}
-
 	public void appendValuesToDescription(StringBuilder description) {
+		description.append(" type: ").append(type).append("[").append(values.length).append("] ");
 		description.append("[");
 		for (int i = 0; i < values.length; i++) {
 			if (i > 0) {
@@ -102,9 +93,17 @@ public class TagArray<T extends Type> extends Tag<T> {
 	@Override
 	public void decode(ByteBuffer buffer) {
 		if (type instanceof Template) {
-			for (int i = 0; i < values.length; i++) {
-				TagStructure value = getOrCreateTag(i);
-				value.decode(buffer);
+			Template template = (Template) type;
+			if (template.isString()) {
+				for (int i = 0; i < values.length; i++) {
+					values[i] = type.decode(buffer);
+				}
+			}
+			else {
+				for (int i = 0; i < values.length; i++) {
+					TagStructure value = getOrCreateTag(i);
+					value.decode(buffer);
+				}
 			}
 		}
 		else {

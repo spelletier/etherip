@@ -198,6 +198,6 @@ public class Controller {
 		typesByCode.put(BasicType.LINT.code(), BasicType.LINT);
 		typesByCode.put(BasicType.REAL.code(), BasicType.REAL);
 		typesByCode.put(BasicType.DWORD.code(), BasicType.DWORD);
-		typesByCode.put(BasicType.STRING.code(), BasicType.STRING);
+//		typesByCode.put(BasicType.STRING.code(), BasicType.STRING);
 	}
 }
