@@ -218,6 +218,43 @@ final public class CIPData
             throw new Exception("Cannot retrieve Number from " + this.type);
         }
     }
+    
+    /**
+     * Read CIP data STRUCT type code
+     *
+     * @return {@link short}
+     * @throws Exception
+     *             if data is not a STRUCT
+     */
+    final synchronized public short getStructTypeCode()
+            throws Exception, IndexOutOfBoundsException
+    {
+        if (this.type != Type.STRUCT)
+        {
+            throw new Exception("Type " + this.type + " is not a struct.");
+        }
+        return this.data.getShort(0);
+    }
+
+    /**
+     * Read CIP data STRUCT data bytes
+     *
+     * @return {@link byte[]}
+     * @throws Exception
+     *             if data is not a STRUCT
+     */
+    final synchronized public byte[] getStructData()
+            throws Exception, IndexOutOfBoundsException
+    {
+        if (this.type != Type.STRUCT)
+        {
+            throw new Exception("Type " + this.type + " is not a struct.");
+        }
+        byte[] dataArray = this.data.array();
+    	byte[] value = new byte[dataArray.length - 2];
+    	System.arraycopy(dataArray, 2, value, 0, value.length);
+    	return value;
+    }
 
     /**
      * Read CIP data as string
