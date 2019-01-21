@@ -162,6 +162,7 @@ public class Controller {
 			ReadTemplate reader = new ReadTemplate();
 			try {
 				type = reader.readTemplate(this, typeCode);
+				typesByCode.put(typeCode, type);
 			}
 			catch (Exception e) {
 				disconnect();
