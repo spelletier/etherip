@@ -50,7 +50,7 @@ public class Symbol {
 		return nbDimensions;
 	}
 	
-	public Tag<?> tag() {
+	public Object value() {
 		if (tag == null) {
 			if (arraySize[0] > 0) {
 				tag = new TagArray<>(controller, name, type(), arraySize[0]);
@@ -58,12 +58,15 @@ public class Symbol {
 			else if (isStructure) {
 				tag = new TagStructure(controller, name, (Template) type());
 			}
+			else {
+				tag = new SymbolBasicValue(controller, name, (BasicType)type());
+			}
 			try {
 				tag.readFromController();
 			}
 			catch (Exception e) {
 				tag = null;
-				throw new RuntimeException("Exceptiuon reading a tag", e);
+				throw new RuntimeException("Exception reading a symbol", e);
 			}
 		}
 		return tag;

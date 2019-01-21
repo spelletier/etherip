@@ -121,10 +121,11 @@ public class Controller {
 		if (arrayMarkerPosition > 0) {
 			int index = Integer.parseInt(part.substring(arrayMarkerPosition+1, part.length()-1));
 			part = part.substring(0, arrayMarkerPosition);
-			value = symbolWithName(part).tag().get(index);
+			TagArray<?> arrayValue = (TagArray<?>) symbolWithName(part).value();
+			value = arrayValue.get(index);
 		}
 		else {
-			value = symbolWithName(parts[0]).tag();
+			value = symbolWithName(parts[0]).value();
 		}
 		
 		for (int i = 1; i < parts.length; i++) {
