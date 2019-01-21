@@ -138,7 +138,7 @@ public class CNSymbolPath extends CNPath
         /** @return Is path of odd length, requiring a pad byte? */
         private boolean needPad()
         {
-            return (path.length() % 2) != 0;
+            return path != null && (path.length() % 2) != 0;
         }
 
 
